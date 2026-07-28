@@ -166,6 +166,7 @@ Neither has ever been committed. If `credentials/` is lost, re-download the clie
 
 - Depends on `googleapis`, which is heavy (~109 MB of the ~126 MB `node_modules`). That is the package, not a mistake.
 - Scopes are requested up front at authorize time. Adding a new API later means re-running `npm run authorize` so the new scope is granted.
+- `package.json` pins an **override** of `gaxios` to `^7.3.0`. `googleapis-common` still resolves an older `gaxios`, which drags in `rimraf → glob → minimatch → brace-expansion` and a high-severity DoS advisory. The override is what takes `npm audit` to zero; removing it silently reintroduces six high-severity findings and ~37 packages. Drop it once `googleapis-common` ships a newer `gaxios` itself.
 
 ## Privacy policy
 
