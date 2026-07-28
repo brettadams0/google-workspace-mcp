@@ -1,0 +1,20 @@
+{
+  "name": "google-workspace-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal MCP server for Gmail send, Drive, Calendar, Sheets, and YouTube, backed by a self-owned Google Cloud OAuth client.",
+  "main": "src/index.js",
+  "scripts": {
+    "authorize": "node scripts/authorize.js",
+    "check-auth": "node scripts/check-token.js",
+    "smoke-test": "node scripts/smoke-test.js",
+    "test": "node --test test/",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "googleapis": "^144.0.0",
+    "zod": "^3.23.8"
+  }
+}

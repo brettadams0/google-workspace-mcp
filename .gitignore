@@ -1,0 +1,12 @@
+# The real OAuth client secret and the refresh token it mints. Never commit these.
+# Note this is `credentials/*` and not `credentials/` on purpose: git cannot
+# re-include a file with `!` if its parent directory itself is excluded, and we
+# do want the example file tracked.
+credentials/*
+!credentials/client_secret.example.json
+
+node_modules/
+*.log
+.env
+.env.*
+.DS_Store
