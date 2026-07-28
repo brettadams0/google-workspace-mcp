@@ -29,6 +29,11 @@ jobs:
       # The suite registers every tool and exercises the MIME builder. It never
       # touches the network and never reads credentials/, so it is safe to run
       # on a runner that has no Google OAuth client at all.
+      #
+      # `npm test` names test/tools.test.js explicitly rather than passing a
+      # directory or glob: directory arguments to `node --test` fail on Linux,
+      # and Node 20 does not expand globs itself. Bare `node --test` would also
+      # discover scripts/smoke-test.js, which does hit the live Google APIs.
       - run: npm test
 
       # credentials/ is gitignored, but a mistake there would leak a live OAuth

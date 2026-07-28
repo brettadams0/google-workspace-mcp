@@ -9,7 +9,7 @@
     "authorize": "node scripts/authorize.js",
     "check-auth": "node scripts/check-token.js",
     "smoke-test": "node scripts/smoke-test.js",
-    "test": "node --test test/",
+    "test": "node --test test/tools.test.js",
     "start": "node src/index.js"
   },
   "dependencies": {
