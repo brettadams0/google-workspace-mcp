@@ -1,5 +1,5 @@
 {
-  "name": "@brettadams0/google-workspace-mcp",
+  "name": "google-workspace-mcp",
   "version": "1.0.0",
   "type": "module",
   "description": "MCP server giving Claude Code write access to Gmail, Calendar, Drive, Sheets and YouTube via a self-owned Google OAuth client",
@@ -53,7 +53,5 @@
   "bugs": {
     "url": "https://github.com/brettadams0/google-workspace-mcp/issues"
   },
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }
