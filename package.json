@@ -1,9 +1,8 @@
 {
-  "name": "google-workspace-mcp",
+  "name": "@brettadams0/google-workspace-mcp",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
-  "description": "Personal MCP server for Gmail send, Drive, Calendar, Sheets, and YouTube, backed by a self-owned Google Cloud OAuth client.",
+  "description": "MCP server giving Claude Code write access to Gmail, Calendar, Drive, Sheets and YouTube via a self-owned Google OAuth client",
   "main": "src/index.js",
   "scripts": {
     "authorize": "node scripts/authorize.js",
@@ -19,5 +18,42 @@
   },
   "overrides": {
     "gaxios": "^7.3.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "google-api",
+    "gmail",
+    "google-calendar",
+    "google-drive",
+    "google-sheets",
+    "youtube",
+    "oauth2"
+  ],
+  "license": "MIT",
+  "author": "Brett Adams",
+  "bin": {
+    "google-workspace-mcp": "src/index.js"
+  },
+  "files": [
+    "src",
+    "scripts",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brettadams0/google-workspace-mcp.git"
+  },
+  "homepage": "https://github.com/brettadams0/google-workspace-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/brettadams0/google-workspace-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

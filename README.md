@@ -14,6 +14,19 @@ Claude: [calendar_list_events] → 4 events
         [gmail_send_email]     → delivered
 ```
 
+## Install
+
+```bash
+claude mcp add google-workspace -- npx -y @brettadams0/google-workspace-mcp
+```
+
+You also need your own Google OAuth client and one run of `npm run authorize` (see Setup).
+
+Published as [`@brettadams0/google-workspace-mcp`](https://www.npmjs.com/package/@brettadams0/google-workspace-mcp).
+The scope is there because the unscoped name was already taken on npm by an
+unrelated package. Cloning this repo and pointing `claude mcp add` at
+`src/index.js` works identically.
+
 ## Why own the OAuth client
 
 The hosted Google connectors are read-mostly. Making Claude Code *act* — send a real email, create a real invite, write a real spreadsheet cell — means holding the OAuth client yourself. That single decision drives most of what's interesting below.
