@@ -147,7 +147,7 @@ test/tools.test.js     schema + MIME tests — no network, no credentials
 npm test
 ```
 
-Exercises the tool registry and the MIME builder only: no network, no credentials, safe in CI. Asserts that every tool registers under a unique name, that the tools capable of irreversible external side effects declare that in their descriptions, and that Gmail MIME assembly produces well-formed multipart messages with correctly encoded attachments.
+Exercises the tool registry and the MIME builder only: no network, no credentials, safe in CI. Asserts that all 23 tools register under unique names, that registration never eagerly reaches for a token, that the tools capable of irreversible external side effects declare that in their descriptions, and that Gmail MIME assembly produces well-formed multipart messages with RFC 2045 line wrapping and base64url encoding.
 
 ## Auth files
 
