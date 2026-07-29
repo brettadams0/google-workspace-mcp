@@ -24,7 +24,14 @@ export function registerSheetsTools(server, getClient) {
     {
       title: 'Read Sheets range',
       description: 'Reads cell values from a range in a Google Sheet (e.g. range "Sheet1!A1:C10").',
-      inputSchema: { spreadsheetId: z.string(), range: z.string() },
+      inputSchema: {
+        spreadsheetId: z
+          .string()
+          .describe('Spreadsheet id — the long string between "/d/" and "/edit" in the sheet URL. Not the sheet name.'),
+        range: z
+          .string()
+          .describe('A1 notation range, e.g. "Sheet1!A1:C10", or a bare sheet name like "Sheet1" for all data. Quote sheet names containing spaces: "\'My Sheet\'!A1:B2".'),
+      },
     },
     async ({ spreadsheetId, range }) => {
       const auth = await getClient();
@@ -40,9 +47,15 @@ export function registerSheetsTools(server, getClient) {
       description:
         'Writes cell values into a range in a Google Sheet immediately, overwriting existing content in that range. No confirmation step.',
       inputSchema: {
-        spreadsheetId: z.string(),
-        range: z.string(),
-        values: z.array(z.array(z.union([z.string(), z.number(), z.boolean()]))),
+        spreadsheetId: z
+          .string()
+          .describe('Spreadsheet id — the long string between "/d/" and "/edit" in the sheet URL. Not the sheet name.'),
+        range: z
+          .string()
+          .describe('A1 notation range to write into, e.g. "Sheet1!A1". The written block extends right and down from the start cell, overwriting whatever is there.'),
+        values: z
+          .array(z.array(z.union([z.string(), z.number(), z.boolean()])))
+          .describe('Rows of cell values, outer array = rows, inner = columns. e.g. [["Name","Score"],["Ada",91]].'),
       },
     },
     async ({ spreadsheetId, range, values }) => {

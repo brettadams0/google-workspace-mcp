@@ -83,19 +83,19 @@ export async function listDrafts(auth, { maxResults = 10 } = {}) {
 
 export function registerGmailTools(server, getClient) {
   const attachmentShape = z.object({
-    filename: z.string(),
-    mimeType: z.string().optional(),
+    filename: z.string().describe('Attachment file name including extension, e.g. "report.pdf".'),
+    mimeType: z.string().optional().describe('MIME type, e.g. "application/pdf". Defaults to a generic binary type when omitted.'),
     content: z.string().describe('Base64-encoded file content'),
   });
 
   const emailShape = {
-    to: z.array(z.string().email()).min(1),
-    cc: z.array(z.string().email()).optional(),
-    bcc: z.array(z.string().email()).optional(),
-    subject: z.string(),
-    body: z.string(),
-    htmlBody: z.string().optional(),
-    attachments: z.array(attachmentShape).optional(),
+    to: z.array(z.string().email()).min(1).describe('Recipient email addresses. At least one required.'),
+    cc: z.array(z.string().email()).optional().describe('Carbon-copy recipients.'),
+    bcc: z.array(z.string().email()).optional().describe('Blind carbon-copy recipients — not visible to other recipients.'),
+    subject: z.string().describe('Subject line.'),
+    body: z.string().describe('Plain-text body. Sent as the text/plain part, and used as the fallback when htmlBody is also supplied.'),
+    htmlBody: z.string().optional().describe('Optional HTML body. When present the message is sent as multipart/alternative alongside body.'),
+    attachments: z.array(attachmentShape).optional().describe('Files to attach.'),
   };
 
   server.registerTool(
@@ -132,7 +132,9 @@ export function registerGmailTools(server, getClient) {
     {
       title: 'List Gmail drafts',
       description: 'Lists existing draft emails in the authorized Gmail account.',
-      inputSchema: { maxResults: z.number().int().min(1).max(50).optional() },
+      inputSchema: {
+        maxResults: z.number().int().min(1).max(50).optional().describe('Maximum drafts to return, 1-50. Defaults to 10.'),
+      },
     },
     async ({ maxResults }) => {
       const auth = await getClient();

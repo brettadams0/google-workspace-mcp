@@ -5,6 +5,17 @@ function json(data) {
   return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
 }
 
+// YouTube ids are all opaque strings of similar shape, so the useful thing to
+// say is where each one comes from and how to tell them apart — a channel id
+// passed where a playlist id belongs fails with an unhelpful 404.
+const VIDEO_ID = z.string().describe('Video id — the 11-character code after "watch?v=" or "youtu.be/", e.g. "dQw4w9WgXcQ". Not the full URL.');
+const CHANNEL_ID = z.string().describe('Channel id, a 24-character string beginning "UC", e.g. "UCBJycsmduvYEL83R_U4JriQ". Not the @handle and not the display name.');
+const PLAYLIST_ID = z.string().describe('Playlist id — the value after "list=" in a playlist URL, usually beginning "PL", "UU", or "LL".');
+// Named `limitField` rather than `maxResults` so it doesn't shadow the handler
+// parameter of the same name further down.
+const limitField = (max, dflt) =>
+  z.number().int().min(1).max(max).optional().describe(`Maximum results to return, 1-${max}. Defaults to ${dflt}.`);
+
 export function registerYoutubeTools(server, getClient) {
   async function yt(auth) {
     return google.youtube({ version: 'v3', auth });
@@ -16,10 +27,10 @@ export function registerYoutubeTools(server, getClient) {
       title: 'Search YouTube',
       description: 'Searches YouTube for videos, channels, or playlists matching a query.',
       inputSchema: {
-        query: z.string(),
-        type: z.enum(['video', 'channel', 'playlist']).optional(),
-        maxResults: z.number().int().min(1).max(50).optional(),
-        order: z.enum(['relevance', 'date', 'rating', 'title', 'viewCount']).optional(),
+        query: z.string().describe('Search terms.'),
+        type: z.enum(['video', 'channel', 'playlist']).optional().describe('Restrict results to one resource type. Omit to return a mix of all three.'),
+        maxResults: limitField(50, 10),
+        order: z.enum(['relevance', 'date', 'rating', 'title', 'viewCount']).optional().describe('Result ordering. Defaults to relevance.'),
       },
     },
     async ({ query, type, maxResults, order }) => {
@@ -40,7 +51,7 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'Get video details',
       description: 'Gets snippet, statistics (views/likes/comments), and content details for one or more video IDs.',
-      inputSchema: { videoIds: z.array(z.string()).min(1).max(50) },
+      inputSchema: { videoIds: z.array(VIDEO_ID).min(1).max(50).describe('One to 50 video ids to look up in a single call.') },
     },
     async ({ videoIds }) => {
       const client = await yt(await getClient());
@@ -55,9 +66,9 @@ export function registerYoutubeTools(server, getClient) {
       title: 'Get channel details',
       description: 'Gets info for a channel by id, by @handle, or "mine" for the authorized account\'s own channel.',
       inputSchema: {
-        channelId: z.string().optional(),
-        handle: z.string().optional().describe('e.g. "@mkbhd" including the @'),
-        mine: z.boolean().optional(),
+        channelId: CHANNEL_ID.optional().describe('Channel id beginning "UC". Provide exactly one of channelId, handle, or mine.'),
+        handle: z.string().optional().describe('Channel @handle including the leading @, e.g. "@mkbhd".'),
+        mine: z.boolean().optional().describe("Set true to return the authorized account's own channel."),
       },
     },
     async ({ channelId, handle, mine }) => {
@@ -77,7 +88,11 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'List playlists',
       description: 'Lists playlists for "mine" or a given channel id.',
-      inputSchema: { channelId: z.string().optional(), mine: z.boolean().optional(), maxResults: z.number().int().min(1).max(50).optional() },
+      inputSchema: {
+        channelId: CHANNEL_ID.optional().describe('List playlists belonging to this channel. Omit and set mine=true for your own.'),
+        mine: z.boolean().optional().describe("Set true to list the authorized account's own playlists."),
+        maxResults: limitField(50, 25),
+      },
     },
     async ({ channelId, mine, maxResults }) => {
       const client = await yt(await getClient());
@@ -96,7 +111,7 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'List videos in a playlist',
       description: 'Lists the videos contained in a playlist, in order.',
-      inputSchema: { playlistId: z.string(), maxResults: z.number().int().min(1).max(50).optional() },
+      inputSchema: { playlistId: PLAYLIST_ID, maxResults: limitField(50, 50) },
     },
     async ({ playlistId, maxResults }) => {
       const client = await yt(await getClient());
@@ -110,7 +125,11 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'Create a playlist',
       description: 'Creates a real playlist on the authorized channel immediately.',
-      inputSchema: { title: z.string(), description: z.string().optional(), privacyStatus: z.enum(['private', 'public', 'unlisted']).optional() },
+      inputSchema: {
+        title: z.string().describe('Playlist title, max 150 characters.'),
+        description: z.string().optional().describe('Playlist description, max 5000 characters.'),
+        privacyStatus: z.enum(['private', 'public', 'unlisted']).optional().describe('Visibility. Defaults to "private".'),
+      },
     },
     async ({ title, description, privacyStatus }) => {
       const client = await yt(await getClient());
@@ -127,7 +146,11 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'Add a video to a playlist',
       description: 'Inserts a video into a playlist immediately.',
-      inputSchema: { playlistId: z.string(), videoId: z.string(), position: z.number().int().min(0).optional() },
+      inputSchema: {
+        playlistId: PLAYLIST_ID,
+        videoId: VIDEO_ID,
+        position: z.number().int().min(0).optional().describe('Zero-based insert position. Omit to append to the end.'),
+      },
     },
     async ({ playlistId, videoId, position }) => {
       const client = await yt(await getClient());
@@ -144,7 +167,7 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'List subscriptions',
       description: 'Lists channels the authorized account is subscribed to.',
-      inputSchema: { maxResults: z.number().int().min(1).max(50).optional() },
+      inputSchema: { maxResults: limitField(50, 50) },
     },
     async ({ maxResults }) => {
       const client = await yt(await getClient());
@@ -158,7 +181,7 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'Subscribe to a channel',
       description: 'Subscribes the authorized account to a channel immediately.',
-      inputSchema: { channelId: z.string() },
+      inputSchema: { channelId: CHANNEL_ID },
     },
     async ({ channelId }) => {
       const client = await yt(await getClient());
@@ -172,7 +195,11 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'Get comments on a video',
       description: 'Lists top-level comment threads on a video.',
-      inputSchema: { videoId: z.string(), maxResults: z.number().int().min(1).max(100).optional(), order: z.enum(['time', 'relevance']).optional() },
+      inputSchema: {
+        videoId: VIDEO_ID,
+        maxResults: limitField(100, 20),
+        order: z.enum(['time', 'relevance']).optional().describe('Comment ordering. Defaults to YouTube\'s own relevance ranking.'),
+      },
     },
     async ({ videoId, maxResults, order }) => {
       const client = await yt(await getClient());
@@ -186,7 +213,7 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'Post a comment on a video',
       description: 'Posts a real top-level comment on a video immediately.',
-      inputSchema: { videoId: z.string(), text: z.string() },
+      inputSchema: { videoId: VIDEO_ID, text: z.string().describe('Comment body as plain text.') },
     },
     async ({ videoId, text }) => {
       const client = await yt(await getClient());
@@ -203,7 +230,10 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'Reply to a comment',
       description: 'Posts a real reply to an existing comment thread immediately.',
-      inputSchema: { parentCommentId: z.string(), text: z.string() },
+      inputSchema: {
+        parentCommentId: z.string().describe('Id of the top-level comment thread being replied to, from youtube_get_comments.'),
+        text: z.string().describe('Reply body as plain text.'),
+      },
     },
     async ({ parentCommentId, text }) => {
       const client = await yt(await getClient());
@@ -217,7 +247,7 @@ export function registerYoutubeTools(server, getClient) {
     {
       title: 'Like / dislike a video',
       description: "Sets the authorized account's rating on a video immediately.",
-      inputSchema: { videoId: z.string(), rating: z.enum(['like', 'dislike', 'none']) },
+      inputSchema: { videoId: VIDEO_ID, rating: z.enum(['like', 'dislike', 'none']).describe('"like" or "dislike" to rate, "none" to remove an existing rating.') },
     },
     async ({ videoId, rating }) => {
       const client = await yt(await getClient());

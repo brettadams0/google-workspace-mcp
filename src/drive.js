@@ -19,10 +19,16 @@ export function registerDriveTools(server, getClient) {
       description:
         'Creates a new file in Google Drive with the given text content. Scoped to drive.file (least privilege, avoids Google\'s restricted-scope security review) — it can only create and later manage files it creates itself, not read or edit pre-existing Drive files. Use the claude.ai Drive connector for reading arbitrary existing files.',
       inputSchema: {
-        name: z.string(),
-        content: z.string(),
-        mimeType: z.string().optional(),
-        parentFolderId: z.string().optional(),
+        name: z.string().describe('File name including extension, e.g. "notes.md". Drive allows duplicate names in the same folder.'),
+        content: z.string().describe('File contents as plain text.'),
+        mimeType: z
+          .string()
+          .optional()
+          .describe('MIME type, e.g. "text/plain", "text/markdown", "text/csv". Use "application/vnd.google-apps.document" to create a Google Doc. Defaults to "text/plain".'),
+        parentFolderId: z
+          .string()
+          .optional()
+          .describe('Id of the destination folder — the string after "/folders/" in its URL. Omit to create in My Drive root.'),
       },
     },
     async ({ name, content, mimeType, parentFolderId }) => {
