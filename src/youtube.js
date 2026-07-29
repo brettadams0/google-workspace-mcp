@@ -25,6 +25,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_search',
     {
       title: 'Search YouTube',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Searches YouTube for videos, channels, or playlists matching a query.',
       inputSchema: {
         query: z.string().describe('Search terms.'),
@@ -50,6 +51,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_get_video',
     {
       title: 'Get video details',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Gets snippet, statistics (views/likes/comments), and content details for one or more video IDs.',
       inputSchema: { videoIds: z.array(VIDEO_ID).min(1).max(50).describe('One to 50 video ids to look up in a single call.') },
     },
@@ -64,6 +66,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_get_channel',
     {
       title: 'Get channel details',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Gets info for a channel by id, by @handle, or "mine" for the authorized account\'s own channel.',
       inputSchema: {
         channelId: CHANNEL_ID.optional().describe('Channel id beginning "UC". Provide exactly one of channelId, handle, or mine.'),
@@ -87,6 +90,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_list_playlists',
     {
       title: 'List playlists',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Lists playlists for "mine" or a given channel id.',
       inputSchema: {
         channelId: CHANNEL_ID.optional().describe('List playlists belonging to this channel. Omit and set mine=true for your own.'),
@@ -110,6 +114,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_list_playlist_items',
     {
       title: 'List videos in a playlist',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Lists the videos contained in a playlist, in order.',
       inputSchema: { playlistId: PLAYLIST_ID, maxResults: limitField(50, 50) },
     },
@@ -124,6 +129,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_create_playlist',
     {
       title: 'Create a playlist',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       description: 'Creates a real playlist on the authorized channel immediately.',
       inputSchema: {
         title: z.string().describe('Playlist title, max 150 characters.'),
@@ -145,6 +151,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_add_to_playlist',
     {
       title: 'Add a video to a playlist',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       description: 'Inserts a video into a playlist immediately.',
       inputSchema: {
         playlistId: PLAYLIST_ID,
@@ -166,6 +173,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_list_subscriptions',
     {
       title: 'List subscriptions',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Lists channels the authorized account is subscribed to.',
       inputSchema: { maxResults: limitField(50, 50) },
     },
@@ -180,6 +188,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_subscribe',
     {
       title: 'Subscribe to a channel',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
       description: 'Subscribes the authorized account to a channel immediately.',
       inputSchema: { channelId: CHANNEL_ID },
     },
@@ -194,6 +203,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_get_comments',
     {
       title: 'Get comments on a video',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Lists top-level comment threads on a video.',
       inputSchema: {
         videoId: VIDEO_ID,
@@ -212,6 +222,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_post_comment',
     {
       title: 'Post a comment on a video',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       description: 'Posts a real top-level comment on a video immediately.',
       inputSchema: { videoId: VIDEO_ID, text: z.string().describe('Comment body as plain text.') },
     },
@@ -229,6 +240,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_reply_to_comment',
     {
       title: 'Reply to a comment',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       description: 'Posts a real reply to an existing comment thread immediately.',
       inputSchema: {
         parentCommentId: z.string().describe('Id of the top-level comment thread being replied to, from youtube_get_comments.'),
@@ -246,6 +258,7 @@ export function registerYoutubeTools(server, getClient) {
     'youtube_rate_video',
     {
       title: 'Like / dislike a video',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
       description: "Sets the authorized account's rating on a video immediately.",
       inputSchema: { videoId: VIDEO_ID, rating: z.enum(['like', 'dislike', 'none']).describe('"like" or "dislike" to rate, "none" to remove an existing rating.') },
     },

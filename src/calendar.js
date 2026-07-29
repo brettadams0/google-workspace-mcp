@@ -64,6 +64,7 @@ export function registerCalendarTools(server, getClient) {
     'calendar_list_events',
     {
       title: 'List calendar events',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Lists upcoming events on a Google Calendar.',
       inputSchema: {
         calendarId: CALENDAR_ID,
@@ -83,6 +84,7 @@ export function registerCalendarTools(server, getClient) {
     'calendar_create_event',
     {
       title: 'Create calendar event',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       description:
         'Creates a real event on the calendar immediately, including sending invites to any attendees listed. No confirmation step.',
       inputSchema: {
@@ -113,6 +115,7 @@ export function registerCalendarTools(server, getClient) {
     'calendar_update_event',
     {
       title: 'Update calendar event',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
       description: 'Updates fields on an existing calendar event immediately.',
       inputSchema: {
         calendarId: CALENDAR_ID,
@@ -133,6 +136,7 @@ export function registerCalendarTools(server, getClient) {
     'calendar_delete_event',
     {
       title: 'Delete calendar event',
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
       description: 'Permanently deletes a calendar event. No confirmation step, not reversible.',
       inputSchema: { calendarId: CALENDAR_ID, eventId: EVENT_ID },
     },

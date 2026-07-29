@@ -23,6 +23,7 @@ export function registerSheetsTools(server, getClient) {
     'sheets_read_range',
     {
       title: 'Read Sheets range',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Reads cell values from a range in a Google Sheet (e.g. range "Sheet1!A1:C10").',
       inputSchema: {
         spreadsheetId: z
@@ -44,6 +45,7 @@ export function registerSheetsTools(server, getClient) {
     'sheets_write_range',
     {
       title: 'Write Sheets range',
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
       description:
         'Writes cell values into a range in a Google Sheet immediately, overwriting existing content in that range. No confirmation step.',
       inputSchema: {

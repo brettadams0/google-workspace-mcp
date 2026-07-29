@@ -102,6 +102,7 @@ export function registerGmailTools(server, getClient) {
     'gmail_send_email',
     {
       title: 'Send Gmail email',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       description:
         'Sends an email immediately from the authorized Gmail account, optionally with file attachments. This is a real send with no draft/review step and cannot be undone.',
       inputSchema: emailShape,
@@ -117,6 +118,7 @@ export function registerGmailTools(server, getClient) {
     'gmail_create_draft',
     {
       title: 'Create Gmail draft',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       description: 'Creates a draft email, optionally with file attachments, that a human must open and send manually from Gmail.',
       inputSchema: emailShape,
     },
@@ -131,6 +133,7 @@ export function registerGmailTools(server, getClient) {
     'gmail_list_drafts',
     {
       title: 'List Gmail drafts',
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Lists existing draft emails in the authorized Gmail account.',
       inputSchema: {
         maxResults: z.number().int().min(1).max(50).optional().describe('Maximum drafts to return, 1-50. Defaults to 10.'),

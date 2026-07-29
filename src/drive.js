@@ -16,6 +16,7 @@ export function registerDriveTools(server, getClient) {
     'drive_create_file',
     {
       title: 'Create Drive file',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       description:
         'Creates a new file in Google Drive with the given text content. Scoped to drive.file (least privilege, avoids Google\'s restricted-scope security review) — it can only create and later manage files it creates itself, not read or edit pre-existing Drive files. Use the claude.ai Drive connector for reading arbitrary existing files.',
       inputSchema: {
