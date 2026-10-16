@@ -1,9 +1,10 @@
 import { getAuthorizedClient } from '../src/auth.js';
-import { google } from 'googleapis';
+import { gmail as gmailApi } from '@googleapis/gmail';
+import { apiOptions } from '../src/shared.js';
 
 async function main() {
   const auth = await getAuthorizedClient();
-  const gmail = google.gmail({ version: 'v1', auth });
+  const gmail = gmailApi({ version: 'v1', ...apiOptions(auth) });
   const profile = await gmail.users.getProfile({ userId: 'me' });
   console.log(`OK: ${profile.data.emailAddress}`);
 }
