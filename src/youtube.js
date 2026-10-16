@@ -1,14 +1,11 @@
-import { google } from 'googleapis';
+import { youtube } from '@googleapis/youtube';
 import { z } from 'zod';
-
-function json(data) {
-  return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
-}
+import { apiOptions, json } from './shared.js';
 
 // YouTube ids are all opaque strings of similar shape, so the useful thing to
 // say is where each one comes from and how to tell them apart — a channel id
 // passed where a playlist id belongs fails with an unhelpful 404.
-const VIDEO_ID = z.string().describe('Video id — the 11-character code after "watch?v=" or "youtu.be/", e.g. "dQw4w9WgXcQ". Not the full URL.');
+const VIDEO_ID = z.string().describe('Video id: the 11-character code after "watch?v=" or "youtu.be/", not the full URL.');
 const CHANNEL_ID = z.string().describe('Channel id, a 24-character string beginning "UC", e.g. "UCBJycsmduvYEL83R_U4JriQ". Not the @handle and not the display name.');
 const PLAYLIST_ID = z.string().describe('Playlist id — the value after "list=" in a playlist URL, usually beginning "PL", "UU", or "LL".');
 // Named `limitField` rather than `maxResults` so it doesn't shadow the handler
@@ -17,9 +14,7 @@ const limitField = (max, dflt) =>
   z.number().int().min(1).max(max).optional().describe(`Maximum results to return, 1-${max}. Defaults to ${dflt}.`);
 
 export function registerYoutubeTools(server, getClient) {
-  async function yt(auth) {
-    return google.youtube({ version: 'v3', auth });
-  }
+  const yt = (auth) => youtube({ version: 'v3', ...apiOptions(auth) });
 
   server.registerTool(
     'youtube_search',
@@ -75,6 +70,11 @@ export function registerYoutubeTools(server, getClient) {
       },
     },
     async ({ channelId, handle, mine }) => {
+      // YouTube answers "no filter selected" with a bare 400 — say what it wants.
+      const selectors = [channelId, handle, mine || undefined].filter((v) => v !== undefined);
+      if (selectors.length !== 1) {
+        throw new Error('Provide exactly one of channelId, handle, or mine: true.');
+      }
       const client = await yt(await getClient());
       const res = await client.channels.list({
         part: ['snippet', 'statistics', 'contentDetails'],

@@ -7,8 +7,9 @@ import { registerDriveTools } from './drive.js';
 import { registerCalendarTools } from './calendar.js';
 import { registerSheetsTools } from './sheets.js';
 import { registerYoutubeTools } from './youtube.js';
+import { VERSION } from './shared.js';
 
-const server = new McpServer({ name: 'google-workspace', version: '1.0.0' });
+const server = new McpServer({ name: 'google-workspace', version: VERSION });
 
 registerGmailTools(server, getAuthorizedClient);
 registerDriveTools(server, getAuthorizedClient);
