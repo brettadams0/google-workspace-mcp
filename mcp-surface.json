@@ -1,0 +1,922 @@
+{
+  "capabilities": [
+    "tools"
+  ],
+  "prompts": [],
+  "resources": [],
+  "server": {
+    "name": "google-workspace",
+    "version": "2.0.0"
+  },
+  "snapshotVersion": 1,
+  "tools": [
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Creates a real event on the calendar immediately and, by default, emails an invitation to every attendee listed. No confirmation step.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "attendees": {
+            "description": "Attendee email addresses. Adding someone sends them a real invitation immediately.",
+            "items": {
+              "format": "email",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "calendarId": {
+            "description": "Calendar id, e.g. \"you@gmail.com\". Defaults to \"primary\", the main calendar.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Longer event notes, shown in the event detail view.",
+            "type": "string"
+          },
+          "end": {
+            "$ref": "#/properties/start"
+          },
+          "location": {
+            "description": "Free-text location, e.g. an address or a room name.",
+            "type": "string"
+          },
+          "recurrence": {
+            "description": "RFC 5545 RRULE lines, e.g. [\"RRULE:FREQ=WEEKLY;INTERVAL=1\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sendUpdates": {
+            "description": "Who Google emails about the change. Defaults to \"all\".",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ],
+            "type": "string"
+          },
+          "start": {
+            "additionalProperties": false,
+            "description": "Set dateTime for a timed event, or date for an all-day one.",
+            "properties": {
+              "date": {
+                "description": "YYYY-MM-DD for an all-day event; an all-day end date is exclusive. Use this or dateTime, never both.",
+                "type": "string"
+              },
+              "dateTime": {
+                "description": "RFC 3339 timestamp for a timed event, e.g. \"2026-08-01T14:30:00-04:00\". Use this or date, never both.",
+                "type": "string"
+              },
+              "timeZone": {
+                "description": "IANA time zone name, e.g. \"America/Toronto\". Optional when dateTime carries an offset.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "summary": {
+            "description": "Event title, shown in the calendar grid.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "start",
+          "end"
+        ],
+        "type": "object"
+      },
+      "name": "calendar_create_event"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Permanently deletes a calendar event and, by default, emails a cancellation to its attendees. No confirmation step, not reversible.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "calendarId": {
+            "description": "Calendar id, e.g. \"you@gmail.com\". Defaults to \"primary\", the main calendar.",
+            "type": "string"
+          },
+          "eventId": {
+            "description": "Event id as returned by calendar_list_events. Not the event title.",
+            "type": "string"
+          },
+          "sendUpdates": {
+            "description": "Who Google emails about the change. Defaults to \"all\".",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ],
+        "type": "object"
+      },
+      "name": "calendar_delete_event"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Lists upcoming events on a Google Calendar.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "calendarId": {
+            "description": "Calendar id, e.g. \"you@gmail.com\". Defaults to \"primary\", the main calendar.",
+            "type": "string"
+          },
+          "maxResults": {
+            "description": "Maximum events to return, 1-100. Defaults to 20.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "timeMax": {
+            "description": "Only return events starting before this RFC 3339 timestamp.",
+            "type": "string"
+          },
+          "timeMin": {
+            "description": "Only return events ending after this RFC 3339 timestamp, e.g. \"2026-08-01T00:00:00Z\". Defaults to now.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "calendar_list_events"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Updates fields on an existing calendar event immediately and, by default, emails the change to its attendees.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "calendarId": {
+            "description": "Calendar id, e.g. \"you@gmail.com\". Defaults to \"primary\", the main calendar.",
+            "type": "string"
+          },
+          "eventId": {
+            "description": "Event id as returned by calendar_list_events. Not the event title.",
+            "type": "string"
+          },
+          "sendUpdates": {
+            "description": "Who Google emails about the change. Defaults to \"all\".",
+            "enum": [
+              "all",
+              "externalOnly",
+              "none"
+            ],
+            "type": "string"
+          },
+          "updates": {
+            "additionalProperties": {},
+            "description": "Partial event object with only the fields to change, e.g. {\"summary\":\"New title\"} or {\"start\":{\"dateTime\":\"...\"}}. Unlisted fields are left as they are.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "eventId",
+          "updates"
+        ],
+        "type": "object"
+      },
+      "name": "calendar_update_event"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Creates a new file in Google Drive with the given text content. Scoped to drive.file: it can only manage files it created itself, and cannot read or edit pre-existing Drive files.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "description": "File contents as plain text.",
+            "type": "string"
+          },
+          "mimeType": {
+            "description": "MIME type, e.g. \"text/plain\", \"text/markdown\", \"text/csv\". Use \"application/vnd.google-apps.document\" to create a Google Doc. Defaults to \"text/plain\".",
+            "type": "string"
+          },
+          "name": {
+            "description": "File name including extension, e.g. \"notes.md\". Drive allows duplicate names in the same folder.",
+            "type": "string"
+          },
+          "parentFolderId": {
+            "description": "Id of the destination folder — the string after \"/folders/\" in its URL. Omit to create in My Drive root.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "content"
+        ],
+        "type": "object"
+      },
+      "name": "drive_create_file"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Creates a draft email, optionally with file attachments, that a human must open and send manually from Gmail.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "attachments": {
+            "description": "Files to attach.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "description": "Base64-encoded file content",
+                  "type": "string"
+                },
+                "filename": {
+                  "description": "Attachment file name including extension, e.g. \"report.pdf\".",
+                  "type": "string"
+                },
+                "mimeType": {
+                  "description": "MIME type, e.g. \"application/pdf\". Defaults to application/octet-stream.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "filename",
+                "content"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "bcc": {
+            "description": "Blind carbon-copy recipients — not visible to other recipients.",
+            "items": {
+              "format": "email",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "body": {
+            "description": "Plain-text body. Also the fallback part when htmlBody is given.",
+            "type": "string"
+          },
+          "cc": {
+            "description": "Carbon-copy recipients.",
+            "items": {
+              "format": "email",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "htmlBody": {
+            "description": "Optional HTML body, sent alongside body as multipart/alternative.",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Subject line.",
+            "type": "string"
+          },
+          "to": {
+            "description": "Recipient email addresses. At least one required.",
+            "items": {
+              "format": "email",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "to",
+          "subject",
+          "body"
+        ],
+        "type": "object"
+      },
+      "name": "gmail_create_draft"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Lists existing draft emails in the authorized Gmail account.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "maxResults": {
+            "description": "Maximum drafts to return, 1-50. Defaults to 10.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "gmail_list_drafts"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Sends an email immediately from the authorized Gmail account, optionally with file attachments. This is a real send with no draft/review step and cannot be undone.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "attachments": {
+            "description": "Files to attach.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "description": "Base64-encoded file content",
+                  "type": "string"
+                },
+                "filename": {
+                  "description": "Attachment file name including extension, e.g. \"report.pdf\".",
+                  "type": "string"
+                },
+                "mimeType": {
+                  "description": "MIME type, e.g. \"application/pdf\". Defaults to application/octet-stream.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "filename",
+                "content"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "bcc": {
+            "description": "Blind carbon-copy recipients — not visible to other recipients.",
+            "items": {
+              "format": "email",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "body": {
+            "description": "Plain-text body. Also the fallback part when htmlBody is given.",
+            "type": "string"
+          },
+          "cc": {
+            "description": "Carbon-copy recipients.",
+            "items": {
+              "format": "email",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "htmlBody": {
+            "description": "Optional HTML body, sent alongside body as multipart/alternative.",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Subject line.",
+            "type": "string"
+          },
+          "to": {
+            "description": "Recipient email addresses. At least one required.",
+            "items": {
+              "format": "email",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "to",
+          "subject",
+          "body"
+        ],
+        "type": "object"
+      },
+      "name": "gmail_send_email"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Reads cell values from a range in a Google Sheet (e.g. range \"Sheet1!A1:C10\").",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "range": {
+            "description": "A1 notation range, e.g. \"Sheet1!A1:C10\", or a bare sheet name like \"Sheet1\" for all data. Quote sheet names containing spaces: \"'My Sheet'!A1:B2\".",
+            "type": "string"
+          },
+          "spreadsheetId": {
+            "description": "Spreadsheet id — the long string between \"/d/\" and \"/edit\" in the sheet URL. Not the sheet name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "range"
+        ],
+        "type": "object"
+      },
+      "name": "sheets_read_range"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Writes cell values into a range in a Google Sheet immediately, overwriting existing content in that range. No confirmation step.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "range": {
+            "description": "A1 notation range to write into, e.g. \"Sheet1!A1\". The written block extends right and down from the start cell, overwriting whatever is there.",
+            "type": "string"
+          },
+          "spreadsheetId": {
+            "description": "Spreadsheet id — the long string between \"/d/\" and \"/edit\" in the sheet URL. Not the sheet name.",
+            "type": "string"
+          },
+          "valueInputOption": {
+            "description": "\"USER_ENTERED\" parses values as if typed, so \"=…\" becomes a live formula: never use it for text from web pages or messages. Defaults to \"RAW\".",
+            "enum": [
+              "RAW",
+              "USER_ENTERED"
+            ],
+            "type": "string"
+          },
+          "values": {
+            "description": "Rows of cell values, outer array = rows, inner = columns. e.g. [[\"Name\",\"Score\"],[\"Ada\",91]].",
+            "items": {
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "spreadsheetId",
+          "range",
+          "values"
+        ],
+        "type": "object"
+      },
+      "name": "sheets_write_range"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Inserts a video into a playlist immediately.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "playlistId": {
+            "description": "Playlist id — the value after \"list=\" in a playlist URL, usually beginning \"PL\", \"UU\", or \"LL\".",
+            "type": "string"
+          },
+          "position": {
+            "description": "Zero-based insert position. Omit to append to the end.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "videoId": {
+            "description": "Video id: the 11-character code after \"watch?v=\" or \"youtu.be/\", not the full URL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlistId",
+          "videoId"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_add_to_playlist"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Creates a real playlist on the authorized channel immediately.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "Playlist description, max 5000 characters.",
+            "type": "string"
+          },
+          "privacyStatus": {
+            "description": "Visibility. Defaults to \"private\".",
+            "enum": [
+              "private",
+              "public",
+              "unlisted"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "description": "Playlist title, max 150 characters.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_create_playlist"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Gets info for a channel by id, by @handle, or \"mine\" for the authorized account's own channel.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "channelId": {
+            "description": "Channel id beginning \"UC\". Provide exactly one of channelId, handle, or mine.",
+            "type": "string"
+          },
+          "handle": {
+            "description": "Channel @handle including the leading @, e.g. \"@mkbhd\".",
+            "type": "string"
+          },
+          "mine": {
+            "description": "Set true to return the authorized account's own channel.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "youtube_get_channel"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Lists top-level comment threads on a video.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "maxResults": {
+            "description": "Maximum results to return, 1-100. Defaults to 20.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "order": {
+            "description": "Comment ordering. Defaults to YouTube's own relevance ranking.",
+            "enum": [
+              "time",
+              "relevance"
+            ],
+            "type": "string"
+          },
+          "videoId": {
+            "description": "Video id: the 11-character code after \"watch?v=\" or \"youtu.be/\", not the full URL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_get_comments"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Gets snippet, statistics (views/likes/comments), and content details for one or more video IDs.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "videoIds": {
+            "description": "One to 50 video ids to look up in a single call.",
+            "items": {
+              "description": "Video id: the 11-character code after \"watch?v=\" or \"youtu.be/\", not the full URL.",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "videoIds"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_get_video"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Lists the videos contained in a playlist, in order.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "maxResults": {
+            "description": "Maximum results to return, 1-50. Defaults to 50.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "playlistId": {
+            "description": "Playlist id — the value after \"list=\" in a playlist URL, usually beginning \"PL\", \"UU\", or \"LL\".",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playlistId"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_list_playlist_items"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Lists playlists for \"mine\" or a given channel id.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "channelId": {
+            "description": "List playlists belonging to this channel. Omit and set mine=true for your own.",
+            "type": "string"
+          },
+          "maxResults": {
+            "description": "Maximum results to return, 1-50. Defaults to 25.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "mine": {
+            "description": "Set true to list the authorized account's own playlists.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "youtube_list_playlists"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Lists channels the authorized account is subscribed to.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "maxResults": {
+            "description": "Maximum results to return, 1-50. Defaults to 50.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "youtube_list_subscriptions"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Posts a real top-level comment on a video immediately.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "description": "Comment body as plain text.",
+            "type": "string"
+          },
+          "videoId": {
+            "description": "Video id: the 11-character code after \"watch?v=\" or \"youtu.be/\", not the full URL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId",
+          "text"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_post_comment"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Sets the authorized account's rating on a video immediately.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "rating": {
+            "description": "\"like\" or \"dislike\" to rate, \"none\" to remove an existing rating.",
+            "enum": [
+              "like",
+              "dislike",
+              "none"
+            ],
+            "type": "string"
+          },
+          "videoId": {
+            "description": "Video id: the 11-character code after \"watch?v=\" or \"youtu.be/\", not the full URL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId",
+          "rating"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_rate_video"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Posts a real reply to an existing comment thread immediately.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "parentCommentId": {
+            "description": "Id of the top-level comment thread being replied to, from youtube_get_comments.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Reply body as plain text.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parentCommentId",
+          "text"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_reply_to_comment"
+    },
+    {
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "description": "Searches YouTube for videos, channels, or playlists matching a query.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "maxResults": {
+            "description": "Maximum results to return, 1-50. Defaults to 10.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "order": {
+            "description": "Result ordering. Defaults to relevance.",
+            "enum": [
+              "relevance",
+              "date",
+              "rating",
+              "title",
+              "viewCount"
+            ],
+            "type": "string"
+          },
+          "query": {
+            "description": "Search terms.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Restrict results to one resource type. Omit to return a mix of all three.",
+            "enum": [
+              "video",
+              "channel",
+              "playlist"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_search"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Subscribes the authorized account to a channel immediately.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "channelId": {
+            "description": "Channel id, a 24-character string beginning \"UC\", e.g. \"UCBJycsmduvYEL83R_U4JriQ\". Not the @handle and not the display name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channelId"
+        ],
+        "type": "object"
+      },
+      "name": "youtube_subscribe"
+    }
+  ]
+}
