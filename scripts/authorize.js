@@ -1,7 +1,8 @@
-import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
+import crypto from 'node:crypto';
 import http from 'node:http';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { loadClientSecret, CREDENTIALS_DIR, TOKEN_PATH } from '../src/auth.js';
+import { mkdir } from 'node:fs/promises';
+import { loadClientSecret, saveToken, CREDENTIALS_DIR, TOKEN_PATH } from '../src/auth.js';
 
 // Deliberately excludes gmail.readonly and drive.readonly — those are Google
 // "Restricted" scopes requiring a paid CASA security assessment, which isn't
@@ -22,12 +23,22 @@ const REDIRECT_URI = `http://localhost:${PORT}/oauth2callback`;
 
 async function main() {
   const { client_id, client_secret } = await loadClientSecret();
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, REDIRECT_URI);
+  const oAuth2Client = new OAuth2Client(client_id, client_secret, REDIRECT_URI);
+
+  // `state` ties the redirect to this run, so a page that gets the browser to
+  // hit the callback with its own code can't plant a token for another
+  // account. PKCE binds the code to this process, so a code intercepted on the
+  // way back is useless to whoever intercepted it.
+  const state = crypto.randomBytes(16).toString('hex');
+  const { codeVerifier, codeChallenge } = await oAuth2Client.generateCodeVerifierAsync();
 
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
     prompt: 'consent',
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
   });
 
   console.log('\nOpen this URL in your browser and sign in with the Google account you want the server to use:\n');
@@ -37,6 +48,12 @@ async function main() {
   const code = await new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
       const url = new URL(req.url, REDIRECT_URI);
+      if (url.pathname !== '/oauth2callback') {
+        res.statusCode = 404;
+        res.end();
+        return;
+      }
+
       const error = url.searchParams.get('error');
       const code = url.searchParams.get('code');
 
@@ -44,6 +61,12 @@ async function main() {
         res.end('Authorization failed. Check the terminal for details.');
         server.close();
         reject(new Error(`Google returned an error: ${error}`));
+        return;
+      }
+      if (url.searchParams.get('state') !== state) {
+        res.end('State mismatch. Aborting.');
+        server.close();
+        reject(new Error('OAuth state mismatch — possible CSRF, aborting.'));
         return;
       }
       if (code) {
@@ -54,12 +77,14 @@ async function main() {
       }
       res.end('Waiting for authorization...');
     });
-    server.listen(PORT);
+    // Loopback only: the callback carries an authorization code, and nothing
+    // else on the network has any business reaching it.
+    server.listen(PORT, 'localhost');
   });
 
-  const { tokens } = await oAuth2Client.getToken(code);
+  const { tokens } = await oAuth2Client.getToken({ code, codeVerifier });
   await mkdir(CREDENTIALS_DIR, { recursive: true });
-  await writeFile(TOKEN_PATH, JSON.stringify(tokens, null, 2));
+  await saveToken(tokens);
   console.log(`Saved token to ${TOKEN_PATH}`);
 }
 

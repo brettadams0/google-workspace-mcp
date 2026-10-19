@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -13,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['20.x', '22.x']
+        node-version: ['22.x', '24.x']
 
     steps:
       - uses: actions/checkout@v4
@@ -26,15 +29,26 @@ jobs:
 
       - run: npm ci
 
-      # The suite registers every tool and exercises the MIME builder. It never
+      - run: npm run lint
+
+      # The suite registers every tool, exercises the MIME builder, and checks
+      # the requests sent to Google through a recording auth client. It never
       # touches the network and never reads credentials/, so it is safe to run
       # on a runner that has no Google OAuth client at all.
       #
       # `npm test` names test/tools.test.js explicitly rather than passing a
       # directory or glob: directory arguments to `node --test` fail on Linux,
-      # and Node 20 does not expand globs itself. Bare `node --test` would also
+      # and Node 20 and earlier do not expand globs. Bare `node --test` would also
       # discover scripts/smoke-test.js, which does hit the live Google APIs.
       - run: npm test
+
+      # Starts the real server over stdio, as an MCP client would, and compares
+      # every tool name, description, schema and annotation against the
+      # committed mcp-surface.json. A surface change has to arrive as a diff to
+      # that file in the same pull request, or this step fails. Listing tools
+      # needs no credentials: auth is only reached when a tool is called.
+      - name: Check the tool surface against mcp-surface.json
+        run: npm run surface
 
       # credentials/ is gitignored, but a mistake there would leak a live OAuth
       # client secret and refresh token, so fail the build rather than trust it.
