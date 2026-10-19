@@ -194,9 +194,9 @@ test('attachments produce a closed multipart/mixed with base64 transfer encoding
 
   const boundary = mime.match(/multipart\/mixed; boundary="([^"]+)"/)?.[1];
   assert.ok(boundary, 'no multipart/mixed boundary found');
-  assert.match(mime, /Content-Disposition: attachment; filename="note\.txt"/);
+  assert.match(mime, /Content-Disposition: attachment;\r\n filename="note\.txt"/);
   assert.match(mime, /Content-Transfer-Encoding: base64/);
-  assert.match(mime, /Content-Type: text\/plain; name="note\.txt"/);
+  assert.match(mime, /Content-Type: text\/plain;\r\n name="note\.txt"/);
   assert.ok(mime.includes(`--${boundary}--`), 'multipart/mixed is not closed');
   assert.ok(mime.includes(content), 'attachment payload missing from message');
 });
@@ -211,7 +211,7 @@ test('attachments fall back to sane defaults for filename and mimeType', () => {
     })
   );
 
-  assert.match(mime, /Content-Type: application\/octet-stream; name="attachment"/);
+  assert.match(mime, /Content-Type: application\/octet-stream;\r\n name="attachment"/);
   assert.match(mime, /filename="attachment"/);
 });
 
@@ -288,17 +288,32 @@ test('a line break in an attachment filename is refused', () => {
   );
 });
 
-test('an attachment MIME type that is not type/subtype is refused', () => {
-  assert.throws(
-    () =>
-      buildRawMessage({
-        to: ['a@example.com'],
-        subject: 'S',
-        body: 'x',
-        attachments: [{ filename: 'a.txt', mimeType: 'text/plain; x="y"', content: 'eA==' }],
-      }),
-    /invalid MIME type/
+test('an attachment MIME type that is not a valid media type is refused', () => {
+  for (const mimeType of ['text', 'text/plain; x="y\\"', 'text/plain; x', 'multipart/mixed', 'message/rfc822']) {
+    assert.throws(
+      () =>
+        buildRawMessage({
+          to: ['a@example.com'],
+          subject: 'S',
+          body: 'x',
+          attachments: [{ filename: 'a.txt', mimeType, content: 'eA==' }],
+        }),
+      /invalid MIME type/,
+      mimeType
+    );
+  }
+});
+
+test('an attachment MIME type may carry parameters', () => {
+  const mime = decode(
+    buildRawMessage({
+      to: ['a@example.com'],
+      subject: 'S',
+      body: 'x',
+      attachments: [{ filename: 'data.csv', mimeType: 'text/csv; charset=utf-8', content: 'eA==' }],
+    })
   );
+  assert.match(mime, /Content-Type: text\/csv; charset=utf-8;\r\n name="data\.csv"/);
 });
 
 // ---------------------------------------------------------------------------
@@ -310,6 +325,7 @@ test('a non-ASCII subject is RFC 2047 encoded and decodes back exactly', () => {
   const words = encoded.split('\r\n ');
 
   assert.ok(words.length > 1, 'a long subject should fold into several encoded words');
+  assert.ok(`Subject: ${words[0]}`.length <= 76, 'the first line exceeds 76 characters');
   let decoded = '';
   for (const word of words) {
     assert.ok(word.length <= 75, `encoded word of ${word.length} chars exceeds 75`);
@@ -341,7 +357,22 @@ test('attachment filenames are quoted safely, and non-ASCII ones use RFC 2231', 
   );
 
   assert.match(mime, /filename="say \\"hi\\"\.txt"/);
-  assert.match(mime, /filename\*=UTF-8''r%C3%A9sum%C3%A9\.pdf/);
+  assert.match(mime, /filename\*0\*=UTF-8''r%C3%A9sum%C3%A9\.pdf/);
+});
+
+test('a long non-ASCII filename is split into RFC 2231 continuations that reassemble exactly', () => {
+  const filename = `${'報告書'.repeat(40)}.pdf`;
+  const mime = decode(
+    buildRawMessage({ to: ['a@example.com'], subject: 'S', body: 'x', attachments: [{ filename, content: 'eA==' }] })
+  );
+
+  for (const line of mime.split('\r\n')) {
+    assert.ok(line.length <= 78, `header line of ${line.length} chars: ${line.slice(0, 40)}…`);
+  }
+  const segments = [...mime.matchAll(/filename\*(\d+)\*=(?:UTF-8'')?([^;\r\n]+)/g)];
+  assert.ok(segments.length > 1);
+  assert.deepEqual(segments.map((m) => Number(m[1])), segments.map((_, i) => i));
+  assert.equal(decodeURIComponent(segments.map((m) => m[2]).join('')), filename);
 });
 
 // SMTP caps a line at 998 octets, and generated HTML is often one long line.
@@ -377,6 +408,17 @@ test('attachment content that is not base64 is refused rather than sent corrupt'
       }),
     /"notes\.txt" content is not valid base64/
   );
+});
+
+test('plain text made of base64 characters, and impossible padding, are refused too', () => {
+  for (const content of ['Quarterly report draft', 'Hello world', 'see you at 10am', 'QUJDR==', 'A=', 'eA=']) {
+    assert.throws(
+      () =>
+        buildRawMessage({ to: ['a@example.com'], subject: 'S', body: 'x', attachments: [{ filename: 'n.txt', content }] }),
+      /not valid base64/,
+      content
+    );
+  }
 });
 
 test('MIME boundaries are random per message', () => {

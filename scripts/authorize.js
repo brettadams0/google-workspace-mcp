@@ -1,8 +1,8 @@
 import { OAuth2Client } from 'google-auth-library';
 import crypto from 'node:crypto';
 import http from 'node:http';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { loadClientSecret, CREDENTIALS_DIR, TOKEN_PATH } from '../src/auth.js';
+import { mkdir } from 'node:fs/promises';
+import { loadClientSecret, saveToken, CREDENTIALS_DIR, TOKEN_PATH } from '../src/auth.js';
 
 // Deliberately excludes gmail.readonly and drive.readonly — those are Google
 // "Restricted" scopes requiring a paid CASA security assessment, which isn't
@@ -84,7 +84,7 @@ async function main() {
 
   const { tokens } = await oAuth2Client.getToken({ code, codeVerifier });
   await mkdir(CREDENTIALS_DIR, { recursive: true });
-  await writeFile(TOKEN_PATH, JSON.stringify(tokens, null, 2), { mode: 0o600 });
+  await saveToken(tokens);
   console.log(`Saved token to ${TOKEN_PATH}`);
 }
 

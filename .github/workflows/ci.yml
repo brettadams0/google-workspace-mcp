@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['20.x', '22.x', '24.x']
+        node-version: ['22.x', '24.x']
 
     steps:
       - uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
       #
       # `npm test` names test/tools.test.js explicitly rather than passing a
       # directory or glob: directory arguments to `node --test` fail on Linux,
-      # and Node 20 does not expand globs itself. Bare `node --test` would also
+      # and Node 20 and earlier do not expand globs. Bare `node --test` would also
       # discover scripts/smoke-test.js, which does hit the live Google APIs.
       - run: npm test
 

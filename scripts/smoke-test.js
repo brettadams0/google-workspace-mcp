@@ -1,12 +1,14 @@
+import { gmail as gmailApi } from '@googleapis/gmail';
 import { getAuthorizedClient } from '../src/auth.js';
 import { sendEmail } from '../src/gmail.js';
-
-const SELF_ADDRESS = 'adamsbrett00@gmail.com';
+import { apiOptions } from '../src/shared.js';
 
 async function main() {
   const auth = await getAuthorizedClient();
+  // Send to the authorized account itself, whoever that is.
+  const profile = await gmailApi({ version: 'v1', ...apiOptions(auth) }).users.getProfile({ userId: 'me' });
   const result = await sendEmail(auth, {
-    to: [SELF_ADDRESS],
+    to: [profile.data.emailAddress],
     subject: 'google-workspace-mcp smoke test',
     body: 'If you are reading this in your inbox, Gmail send via the custom MCP server works end to end.',
   });

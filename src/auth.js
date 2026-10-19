@@ -1,5 +1,5 @@
 import { OAuth2Client } from 'google-auth-library';
-import { readFile, writeFile } from 'node:fs/promises';
+import { chmod, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +21,17 @@ export async function loadClientSecret() {
 
 let cachedClient = null;
 
+/**
+ * Write the token file readable by its owner only. `writeFile`'s `mode` applies
+ * only when it creates the file, so a token.json left at 0644 by an earlier
+ * version is tightened explicitly: the refresh token in it can send mail as
+ * the account.
+ */
+export async function saveToken(token) {
+  await writeFile(TOKEN_PATH, JSON.stringify(token, null, 2), { mode: 0o600 });
+  await chmod(TOKEN_PATH, 0o600);
+}
+
 export async function getAuthorizedClient() {
   if (cachedClient) return cachedClient;
 
@@ -38,7 +49,7 @@ export async function getAuthorizedClient() {
   // Google only sends once.
   oAuth2Client.on('tokens', (newTokens) => {
     Object.assign(token, newTokens);
-    writeFile(TOKEN_PATH, JSON.stringify(token, null, 2)).catch((err) => {
+    saveToken(token).catch((err) => {
       console.error('Failed to persist refreshed Google token:', err);
     });
   });

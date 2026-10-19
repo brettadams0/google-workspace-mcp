@@ -4,7 +4,10 @@ import { z } from 'zod';
 import { apiOptions, json, text } from './shared.js';
 
 const PRINTABLE_ASCII = /^[\x20-\x7e]*$/;
-const MIME_TYPE = /^[\w.+-]+\/[\w.+-]+$/;
+// type/subtype with optional `; key=value` parameters, values a token or a
+// quoted string. multipart/* and message/* are excluded: they cannot be sent
+// base64-encoded (RFC 2045 §6.4), and a multipart needs a boundary we'd own.
+const MIME_TYPE = /^(?!multipart\/|message\/)[\w.+-]+\/[\w.+-]+(?:\s*;\s*[\w.+-]+=(?:[\w.+-]+|"[^"\\]*"))*$/i;
 
 /**
  * Refuse a header value containing a line break.
@@ -25,10 +28,11 @@ function headerSafe(field, value) {
 /**
  * Encode a header value for transport (RFC 2047).
  *
- * Headers are 7-bit ASCII, so anything else travels as "encoded words". Each
- * word is capped at 75 characters, which is 45 bytes of UTF-8 once base64'd,
- * and a word must not split a multi-byte character — hence chunking by code
- * point rather than by byte.
+ * Headers are 7-bit ASCII, so anything else travels as "encoded words", one
+ * per folded line. A line holding an encoded word may run to 76 characters, and
+ * the first one also carries the field name ("Subject: "), so each word holds
+ * at most 39 bytes of UTF-8: 52 characters of base64, 64 with its wrapper. A
+ * word must not split a multi-byte character, hence chunking by code point.
  */
 export function encodeHeaderValue(value) {
   if (PRINTABLE_ASCII.test(value)) return value;
@@ -36,7 +40,7 @@ export function encodeHeaderValue(value) {
   const chunks = [];
   let chunk = '';
   for (const char of value) {
-    if (chunk && Buffer.byteLength(chunk + char) > 45) {
+    if (chunk && Buffer.byteLength(chunk + char) > 39) {
       chunks.push(chunk);
       chunk = '';
     }
@@ -56,14 +60,23 @@ function filenameParams(filename) {
     return { name: `name=${quoted}`, filename: `filename=${quoted}` };
   }
   // RFC 2231 is the standard form for a non-ASCII filename; the RFC 2047 `name`
-  // is what older clients look at instead.
+  // is what older clients look at instead. Percent-encoding triples the length,
+  // so the value is split into numbered continuations (filename*0*=, *1*=, …)
+  // on folded lines, never inside a %XX escape, to stay within line limits.
   const extended = encodeURIComponent(filename).replace(
     /['()*]/g,
     (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
   );
+  const segments = [''];
+  for (const unit of extended.match(/%[0-9A-F]{2}|[^%]/g)) {
+    if (segments.at(-1).length + unit.length > 54) segments.push('');
+    segments[segments.length - 1] += unit;
+  }
   return {
-    name: `name="=?UTF-8?B?${Buffer.from(filename).toString('base64')}?="`,
-    filename: `filename*=UTF-8''${extended}`,
+    name: `name="${encodeHeaderValue(filename)}"`,
+    filename: segments
+      .map((segment, i) => `filename*${i}*=${i === 0 ? "UTF-8''" : ''}${segment}`)
+      .join(';\r\n '),
   };
 }
 
@@ -75,15 +88,22 @@ function base64Wrap(base64) {
 /**
  * Normalise attachment content supplied by the caller.
  *
- * Models produce base64 with stray line breaks, or in the URL-safe alphabet,
+ * Models produce base64 wrapped across lines, or in the URL-safe alphabet,
  * often enough to accept both. Anything else is refused: Gmail would accept it
- * and deliver a corrupt attachment, which is worse than an error.
+ * and deliver a corrupt attachment, which is worse than an error. Spaces and
+ * tabs are refused rather than stripped, since base64 never contains them and
+ * they are the usual sign of plain text passed where base64 was expected.
  */
 function normaliseBase64(content, filename) {
-  const compact = content.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(compact) || compact.length % 4 === 1) {
-    throw new Error(`Attachment "${filename}" content is not valid base64.`);
-  }
+  const invalid = () => new Error(`Attachment "${filename}" content is not valid base64.`);
+  const compact = content.replace(/\r?\n/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  const match = /^([A-Za-z0-9+/]*)(={0,2})$/.exec(compact);
+  if (!match) throw invalid();
+  const [, data, padding] = match;
+  // A final group of one character is never valid, and padding, when present,
+  // must complete the last group exactly.
+  if (data.length % 4 === 1) throw invalid();
+  if (padding && (data.length + padding.length) % 4 !== 0) throw invalid();
   // Round-trip to restore any padding the caller dropped.
   return Buffer.from(compact, 'base64').toString('base64');
 }
@@ -110,9 +130,9 @@ function attachmentPart(attachment) {
   }
   const params = filenameParams(filename);
   return [
-    `Content-Type: ${mimeType}; ${params.name}`,
+    `Content-Type: ${mimeType};\r\n ${params.name}`,
     'Content-Transfer-Encoding: base64',
-    `Content-Disposition: attachment; ${params.filename}`,
+    `Content-Disposition: attachment;\r\n ${params.filename}`,
     '',
     base64Wrap(normaliseBase64(attachment.content, filename)),
   ].join('\r\n');

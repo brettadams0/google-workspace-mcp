@@ -3,7 +3,7 @@
 [![CI](https://github.com/brettadams0/google-workspace-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/brettadams0/google-workspace-mcp/actions/workflows/ci.yml)
 [![Surface checked by mcp-surface](https://img.shields.io/badge/surface-mcp--surface-7c3aed.svg)](https://github.com/brettadams0/mcp-surface)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen.svg)](package.json)
+[![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen.svg)](package.json)
 
 An [MCP](https://modelcontextprotocol.io) server that gives Claude write access to a personal Google account — Gmail, Drive, Calendar, Sheets, and YouTube — backed by a **self-owned Google Cloud OAuth client** rather than a hosted third-party connector. It can **send real email**, not just draft it.
 
@@ -23,7 +23,7 @@ The hosted Google connectors are read-mostly. Making Claude *act* — send a rea
 
 ### Least-privilege scopes, chosen to avoid a paid security review
 
-Google classifies `gmail.readonly` and `drive.readonly` as **Restricted** scopes. Shipping an app that uses them requires a [CASA security assessment](https://developers.google.com/workspace/guides/configure-oauth-consent) — a paid, recurring third-party audit. That is not a sensible cost for a single-user personal tool, so this server requests **only write scopes**:
+Google classifies `gmail.readonly` and `drive.readonly` as **Restricted** scopes. Shipping an app that uses them requires a [CASA security assessment](https://developers.google.com/workspace/guides/configure-oauth-consent) — a paid, recurring third-party audit. That is not a sensible cost for a single-user personal tool, so this server requests **none of them**. For Gmail and Drive, that means it can act but not read:
 
 | Scope | Why |
 |---|---|
@@ -78,7 +78,7 @@ The consent flow uses PKCE and a `state` check, and its callback listener binds 
 
 ## Setup
 
-Requires Node 20+.
+Requires Node 22+.
 
 ### 1. Create the OAuth client
 
