@@ -56,6 +56,9 @@ export async function deleteEvent(auth, { calendarId = 'primary', eventId, sendU
   await api(auth).events.delete({ calendarId, eventId, sendUpdates });
 }
 
+export const MAX_ATTENDEES = 100;
+export const MAX_RECURRENCE_LINES = 10;
+
 export function registerCalendarTools(server, getClient) {
   // Google's event API distinguishes timed events from all-day ones by which
   // field is set, and supplying both is the usual cause of a confusing 400.
@@ -90,7 +93,7 @@ export function registerCalendarTools(server, getClient) {
         calendarId: CALENDAR_ID,
         timeMin: z.string().optional().describe('Only return events ending after this RFC 3339 timestamp, e.g. "2026-08-01T00:00:00Z". Defaults to now.'),
         timeMax: z.string().optional().describe('Only return events starting before this RFC 3339 timestamp.'),
-        maxResults: z.number().int().min(1).max(100).optional().describe('Maximum events to return, 1-100. Defaults to 20.'),
+        maxResults: z.number().int().min(1).max(100).optional().describe('Maximum events to return. Defaults to 20.'),
       },
     },
     async (args) => json(await listEvents(await getClient(), args))
@@ -110,12 +113,15 @@ export function registerCalendarTools(server, getClient) {
         location: z.string().optional().describe('Free-text location, e.g. an address or a room name.'),
         start: dateTimeShape,
         end: dateTimeShape,
+        // Capped like every array input: GHSA-mrhx-c7xc-m3w5 (see gmail.js).
         attendees: z
           .array(z.string().email())
+          .max(MAX_ATTENDEES, `attendees accepts at most ${MAX_ATTENDEES} addresses.`)
           .optional()
           .describe('Attendee email addresses. Adding someone sends them a real invitation immediately.'),
         recurrence: z
           .array(z.string())
+          .max(MAX_RECURRENCE_LINES, `recurrence accepts at most ${MAX_RECURRENCE_LINES} lines.`)
           .optional()
           .describe('RFC 5545 RRULE lines, e.g. ["RRULE:FREQ=WEEKLY;INTERVAL=1"]'),
         sendUpdates: SEND_UPDATES,

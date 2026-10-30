@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
-import { buildRawMessage, encodeHeaderValue, registerGmailTools } from '../src/gmail.js';
+import { z } from 'zod';
+
+import { MAX_ATTACHMENTS, MAX_RECIPIENTS, buildRawMessage, encodeHeaderValue, registerGmailTools } from '../src/gmail.js';
 import { registerDriveTools } from '../src/drive.js';
-import { createEvent, deleteEvent, registerCalendarTools, updateEvent } from '../src/calendar.js';
-import { registerSheetsTools, writeRange } from '../src/sheets.js';
+import { MAX_ATTENDEES, MAX_RECURRENCE_LINES, createEvent, deleteEvent, registerCalendarTools, updateEvent } from '../src/calendar.js';
+import { MAX_CELLS_PER_ROW, MAX_ROWS, registerSheetsTools, writeRange } from '../src/sheets.js';
 import { registerYoutubeTools } from '../src/youtube.js';
 import { REQUEST_TIMEOUT_MS, VERSION } from '../src/shared.js';
 
@@ -501,4 +504,83 @@ test('the server reports the version in package.json', async () => {
   const { readFile } = await import('node:fs/promises');
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(VERSION, pkg.version);
+});
+
+// GHSA-mrhx-c7xc-m3w5: on Zod 3, an array schema with no length cap records one
+// issue per failing element without limit, so one oversized argument can run
+// the server out of memory. Every array input is capped; these pin each cap,
+// one past the limit, and that the limit itself is still accepted.
+
+/** Validation messages for one field of a tool's input, as the SDK would see them. */
+function fieldErrors(toolName, args, field) {
+  const { inputSchema } = collectTools().get(toolName).config;
+  const result = z.object(inputSchema).safeParse(args);
+  if (result.success) return [];
+  return result.error.issues.filter((issue) => issue.path[0] === field).map((issue) => issue.message);
+}
+
+const addresses = (n) => Array.from({ length: n }, (_, i) => `person${i}@example.com`);
+
+for (const tool of ['gmail_send_email', 'gmail_create_draft']) {
+  for (const field of ['to', 'cc', 'bcc']) {
+    test(`${tool} refuses ${field} past ${MAX_RECIPIENTS} addresses and accepts exactly ${MAX_RECIPIENTS}`, () => {
+      assert.deepEqual(fieldErrors(tool, { [field]: addresses(MAX_RECIPIENTS + 1) }, field), [
+        `${field} accepts at most 100 addresses.`,
+      ]);
+      assert.deepEqual(fieldErrors(tool, { [field]: addresses(MAX_RECIPIENTS) }, field), []);
+    });
+  }
+
+  test(`${tool} refuses more than ${MAX_ATTACHMENTS} attachments and accepts exactly ${MAX_ATTACHMENTS}`, () => {
+    const files = (n) => Array.from({ length: n }, (_, i) => ({ filename: `f${i}.txt`, content: 'aGk=' }));
+    assert.deepEqual(fieldErrors(tool, { attachments: files(MAX_ATTACHMENTS + 1) }, 'attachments'), [
+      'attachments accepts at most 10 files.',
+    ]);
+    assert.deepEqual(fieldErrors(tool, { attachments: files(MAX_ATTACHMENTS) }, 'attachments'), []);
+  });
+}
+
+test(`sheets_write_range refuses more than ${MAX_ROWS} rows and accepts exactly ${MAX_ROWS}`, () => {
+  const rows = (n) => Array.from({ length: n }, () => ['x']);
+  assert.deepEqual(fieldErrors('sheets_write_range', { values: rows(MAX_ROWS + 1) }, 'values'), [
+    'values accepts at most 10000 rows.',
+  ]);
+  assert.deepEqual(fieldErrors('sheets_write_range', { values: rows(MAX_ROWS) }, 'values'), []);
+});
+
+test(`sheets_write_range refuses a row of more than ${MAX_CELLS_PER_ROW} cells and accepts exactly ${MAX_CELLS_PER_ROW}`, () => {
+  const row = (n) => [Array.from({ length: n }, () => 1)];
+  assert.deepEqual(fieldErrors('sheets_write_range', { values: row(MAX_CELLS_PER_ROW + 1) }, 'values'), [
+    'Each row accepts at most 1000 cells.',
+  ]);
+  assert.deepEqual(fieldErrors('sheets_write_range', { values: row(MAX_CELLS_PER_ROW) }, 'values'), []);
+});
+
+test(`calendar_create_event refuses more than ${MAX_ATTENDEES} attendees and accepts exactly ${MAX_ATTENDEES}`, () => {
+  assert.deepEqual(fieldErrors('calendar_create_event', { attendees: addresses(MAX_ATTENDEES + 1) }, 'attendees'), [
+    'attendees accepts at most 100 addresses.',
+  ]);
+  assert.deepEqual(fieldErrors('calendar_create_event', { attendees: addresses(MAX_ATTENDEES) }, 'attendees'), []);
+});
+
+test(`calendar_create_event refuses more than ${MAX_RECURRENCE_LINES} recurrence lines and accepts exactly ${MAX_RECURRENCE_LINES}`, () => {
+  const lines = (n) => Array.from({ length: n }, () => 'RRULE:FREQ=WEEKLY');
+  assert.deepEqual(fieldErrors('calendar_create_event', { recurrence: lines(MAX_RECURRENCE_LINES + 1) }, 'recurrence'), [
+    'recurrence accepts at most 10 lines.',
+  ]);
+  assert.deepEqual(fieldErrors('calendar_create_event', { recurrence: lines(MAX_RECURRENCE_LINES) }, 'recurrence'), []);
+});
+
+test('every array a tool accepts carries a length cap', () => {
+  // Walks the JSON Schema each tool actually exposes, so a new uncapped array
+  // fails here however its source is formatted.
+  const uncapped = [];
+  const walk = (node, path) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'array' && node.maxItems === undefined) uncapped.push(path);
+    for (const [key, value] of Object.entries(node)) walk(value, `${path}/${key}`);
+  };
+  const surface = JSON.parse(readFileSync(new URL('../mcp-surface.json', import.meta.url), 'utf-8'));
+  for (const tool of surface.tools) walk(tool.inputSchema, tool.name);
+  assert.deepEqual(uncapped, []);
 });

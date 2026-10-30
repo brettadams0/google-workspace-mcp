@@ -11,7 +11,7 @@ const PLAYLIST_ID = z.string().describe('Playlist id — the value after "list="
 // Named `limitField` rather than `maxResults` so it doesn't shadow the handler
 // parameter of the same name further down.
 const limitField = (max, dflt) =>
-  z.number().int().min(1).max(max).optional().describe(`Maximum results to return, 1-${max}. Defaults to ${dflt}.`);
+  z.number().int().min(1).max(max).optional().describe(`Maximum results to return. Defaults to ${dflt}.`);
 
 export function registerYoutubeTools(server, getClient) {
   const yt = (auth) => youtube({ version: 'v3', ...apiOptions(auth) });
@@ -48,7 +48,7 @@ export function registerYoutubeTools(server, getClient) {
       title: 'Get video details',
       annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Gets snippet, statistics (views/likes/comments), and content details for one or more video IDs.',
-      inputSchema: { videoIds: z.array(VIDEO_ID).min(1).max(50).describe('One to 50 video ids to look up in a single call.') },
+      inputSchema: { videoIds: z.array(VIDEO_ID).min(1).max(50).describe('Video ids to look up in one call.') },
     },
     async ({ videoIds }) => {
       const client = await yt(await getClient());

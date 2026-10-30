@@ -28,6 +28,7 @@
               "format": "email",
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "calendarId": {
@@ -50,6 +51,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 10,
             "type": "array"
           },
           "sendUpdates": {
@@ -146,7 +148,7 @@
             "type": "string"
           },
           "maxResults": {
-            "description": "Maximum events to return, 1-100. Defaults to 20.",
+            "description": "Maximum events to return. Defaults to 20.",
             "maximum": 100,
             "minimum": 1,
             "type": "integer"
@@ -280,14 +282,16 @@
               ],
               "type": "object"
             },
+            "maxItems": 10,
             "type": "array"
           },
           "bcc": {
-            "description": "Blind carbon-copy recipients — not visible to other recipients.",
+            "description": "Blind carbon-copy recipients, hidden from the others.",
             "items": {
               "format": "email",
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "body": {
@@ -300,10 +304,11 @@
               "format": "email",
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "htmlBody": {
-            "description": "Optional HTML body, sent alongside body as multipart/alternative.",
+            "description": "HTML body, sent alongside body as multipart/alternative.",
             "type": "string"
           },
           "subject": {
@@ -311,11 +316,12 @@
             "type": "string"
           },
           "to": {
-            "description": "Recipient email addresses. At least one required.",
+            "description": "Recipient email addresses.",
             "items": {
               "format": "email",
               "type": "string"
             },
+            "maxItems": 100,
             "minItems": 1,
             "type": "array"
           }
@@ -340,7 +346,7 @@
         "additionalProperties": false,
         "properties": {
           "maxResults": {
-            "description": "Maximum drafts to return, 1-50. Defaults to 10.",
+            "description": "Maximum drafts to return. Defaults to 10.",
             "maximum": 50,
             "minimum": 1,
             "type": "integer"
@@ -386,14 +392,16 @@
               ],
               "type": "object"
             },
+            "maxItems": 10,
             "type": "array"
           },
           "bcc": {
-            "description": "Blind carbon-copy recipients — not visible to other recipients.",
+            "description": "Blind carbon-copy recipients, hidden from the others.",
             "items": {
               "format": "email",
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "body": {
@@ -406,10 +414,11 @@
               "format": "email",
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "htmlBody": {
-            "description": "Optional HTML body, sent alongside body as multipart/alternative.",
+            "description": "HTML body, sent alongside body as multipart/alternative.",
             "type": "string"
           },
           "subject": {
@@ -417,11 +426,12 @@
             "type": "string"
           },
           "to": {
-            "description": "Recipient email addresses. At least one required.",
+            "description": "Recipient email addresses.",
             "items": {
               "format": "email",
               "type": "string"
             },
+            "maxItems": 100,
             "minItems": 1,
             "type": "array"
           }
@@ -500,8 +510,10 @@
                   "boolean"
                 ]
               },
+              "maxItems": 1000,
               "type": "array"
             },
+            "maxItems": 10000,
             "type": "array"
           }
         },
@@ -623,7 +635,7 @@
         "additionalProperties": false,
         "properties": {
           "maxResults": {
-            "description": "Maximum results to return, 1-100. Defaults to 20.",
+            "description": "Maximum results to return. Defaults to 20.",
             "maximum": 100,
             "minimum": 1,
             "type": "integer"
@@ -659,7 +671,7 @@
         "additionalProperties": false,
         "properties": {
           "videoIds": {
-            "description": "One to 50 video ids to look up in a single call.",
+            "description": "Video ids to look up in one call.",
             "items": {
               "description": "Video id: the 11-character code after \"watch?v=\" or \"youtu.be/\", not the full URL.",
               "type": "string"
@@ -687,7 +699,7 @@
         "additionalProperties": false,
         "properties": {
           "maxResults": {
-            "description": "Maximum results to return, 1-50. Defaults to 50.",
+            "description": "Maximum results to return. Defaults to 50.",
             "maximum": 50,
             "minimum": 1,
             "type": "integer"
@@ -719,7 +731,7 @@
             "type": "string"
           },
           "maxResults": {
-            "description": "Maximum results to return, 1-50. Defaults to 25.",
+            "description": "Maximum results to return. Defaults to 25.",
             "maximum": 50,
             "minimum": 1,
             "type": "integer"
@@ -744,7 +756,7 @@
         "additionalProperties": false,
         "properties": {
           "maxResults": {
-            "description": "Maximum results to return, 1-50. Defaults to 50.",
+            "description": "Maximum results to return. Defaults to 50.",
             "maximum": 50,
             "minimum": 1,
             "type": "integer"
@@ -857,7 +869,7 @@
         "additionalProperties": false,
         "properties": {
           "maxResults": {
-            "description": "Maximum results to return, 1-50. Defaults to 10.",
+            "description": "Maximum results to return. Defaults to 10.",
             "maximum": 50,
             "minimum": 1,
             "type": "integer"

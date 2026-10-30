@@ -28,6 +28,9 @@ export async function writeRange(auth, { spreadsheetId, range, values, valueInpu
   return res.data;
 }
 
+export const MAX_ROWS = 10_000;
+export const MAX_CELLS_PER_ROW = 1_000;
+
 export function registerSheetsTools(server, getClient) {
   const SPREADSHEET_ID = z
     .string()
@@ -62,7 +65,14 @@ export function registerSheetsTools(server, getClient) {
           .string()
           .describe('A1 notation range to write into, e.g. "Sheet1!A1". The written block extends right and down from the start cell, overwriting whatever is there.'),
         values: z
-          .array(z.array(z.union([z.string(), z.number(), z.boolean()])))
+          // Both levels are capped: an uncapped array is the memory-exhaustion path
+          // in GHSA-mrhx-c7xc-m3w5 (see gmail.js).
+          .array(
+            z
+              .array(z.union([z.string(), z.number(), z.boolean()]))
+              .max(MAX_CELLS_PER_ROW, `Each row accepts at most ${MAX_CELLS_PER_ROW} cells.`)
+          )
+          .max(MAX_ROWS, `values accepts at most ${MAX_ROWS} rows.`)
           .describe('Rows of cell values, outer array = rows, inner = columns. e.g. [["Name","Score"],["Ada",91]].'),
         valueInputOption: z
           .enum(['RAW', 'USER_ENTERED'])

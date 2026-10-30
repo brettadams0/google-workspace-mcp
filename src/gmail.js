@@ -197,6 +197,9 @@ export async function listDrafts(auth, { maxResults = 10 } = {}) {
   return res.data.drafts ?? [];
 }
 
+export const MAX_RECIPIENTS = 100;
+export const MAX_ATTACHMENTS = 10;
+
 export function registerGmailTools(server, getClient) {
   const attachmentShape = z.object({
     filename: z.string().describe('Attachment file name including extension, e.g. "report.pdf".'),
@@ -204,14 +207,25 @@ export function registerGmailTools(server, getClient) {
     content: z.string().describe('Base64-encoded file content'),
   });
 
+  // Every array a tool accepts has a length cap. On Zod 3, an array with no cap
+  // records one issue per failing element with no limit, so one oversized
+  // argument can run the server out of memory (GHSA-mrhx-c7xc-m3w5; the fix is
+  // Zod 4 only). The caps are far above anything a real send needs.
+  const recipients = (field) =>
+    z.array(z.string().email()).max(MAX_RECIPIENTS, `${field} accepts at most ${MAX_RECIPIENTS} addresses.`);
+
   const emailShape = {
-    to: z.array(z.string().email()).min(1).describe('Recipient email addresses. At least one required.'),
-    cc: z.array(z.string().email()).optional().describe('Carbon-copy recipients.'),
-    bcc: z.array(z.string().email()).optional().describe('Blind carbon-copy recipients — not visible to other recipients.'),
+    to: recipients('to').min(1).describe('Recipient email addresses.'),
+    cc: recipients('cc').optional().describe('Carbon-copy recipients.'),
+    bcc: recipients('bcc').optional().describe('Blind carbon-copy recipients, hidden from the others.'),
     subject: z.string().describe('Subject line.'),
     body: z.string().describe('Plain-text body. Also the fallback part when htmlBody is given.'),
-    htmlBody: z.string().optional().describe('Optional HTML body, sent alongside body as multipart/alternative.'),
-    attachments: z.array(attachmentShape).optional().describe('Files to attach.'),
+    htmlBody: z.string().optional().describe('HTML body, sent alongside body as multipart/alternative.'),
+    attachments: z
+      .array(attachmentShape)
+      .max(MAX_ATTACHMENTS, `attachments accepts at most ${MAX_ATTACHMENTS} files.`)
+      .optional()
+      .describe('Files to attach.'),
   };
 
   server.registerTool(
@@ -250,7 +264,7 @@ export function registerGmailTools(server, getClient) {
       annotations: { readOnlyHint: true, openWorldHint: true },
       description: 'Lists existing draft emails in the authorized Gmail account.',
       inputSchema: {
-        maxResults: z.number().int().min(1).max(50).optional().describe('Maximum drafts to return, 1-50. Defaults to 10.'),
+        maxResults: z.number().int().min(1).max(50).optional().describe('Maximum drafts to return. Defaults to 10.'),
       },
     },
     async ({ maxResults }) => json(await listDrafts(await getClient(), { maxResults }))
